@@ -1,0 +1,40 @@
+<div class="containter" style="width: 90%;margin: auto auto;margin-top: 30px;">
+    <div class="table-responsive">
+      <table class="table">
+          <thead>
+            <tr>
+                <th>Description</th>
+                <th>Bits</th>
+                <th>Added</th>
+                <th>Download</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+                <td>{{ lib.description }}</td>
+                <td>{{ lib.bits }}</td>
+                <td>{{ lib.add_date|date:"o M j H:i " }} </td>
+                <td><a href="{% url 'download' lib.id %}" download="{% url 'download' lib.id %}">Link</a></td>
+            </tr>
+          </tbody>
+      </table>
+    </div>
+    <div class="table-responsive" style="margin: 0 auto;width: 50%;">
+      <table class="table">
+          <thead>
+            <tr>
+                <th>Function</th>
+                <th>Address</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for address in addresses %}
+            <tr>
+                <td>{{ address.function.name }}</td>
+                <td>{{ address.value | stringformat:"#x" }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+      </table>
+    </div>
+</div>

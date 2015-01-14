@@ -1,0 +1,29 @@
+    <div class="container" style="width: 90%;margin: auto auto;margin-top: 30px;">
+      <h2>Libraries</h2>
+      <p>List of libraries in database</p>
+      <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Description</th>
+            <th>Bits</th>
+            <th>Download</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+          <tbody>
+            {% for lib in libs %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ lib.description }}</td>
+                <td>{{ lib.bits }}       </td>
+                <td><a href="{% url 'download' lib.id %}" download="{% url 'download' lib.id %}">Link</a></td>
+                <td><a href="{% url 'show' lib.id %}">Link</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+      </table>
+          <h3 style="text-align: center;"><a style="text-decoration: none;" href="{% url 'download_all' %}" download="{% url 'download_all' %}"> I want them all! </a></h3>
+      </div>
+    </div>

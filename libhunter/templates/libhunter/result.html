@@ -1,0 +1,35 @@
+<div class="container" style="width: 90%;">
+    {% if error_message %}
+    <h2>{{error_message}}</h2>
+    {% else %}
+    <h2>Possible libraries</h2>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Description</th>
+            <th>Bits</th>
+            <th>&lt;{{ name }}&gt;</th>
+            <th>Download</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+          <tbody>
+            {% for lib, system in resolved %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ lib.description }}</td>
+                <td>{{ lib.bits }}       </td>
+                <td>{{ system | stringformat:"#x"}}    </td>
+                <td><a href="{% url 'download' lib.id %}" download="{% url 'download' lib.id %}">Link</a></td>
+                <td><a href="{% url 'show' lib.id %}">Link</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+      </table>
+      </div>
+    {% endif %}
+
+
+</div>

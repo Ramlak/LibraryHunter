@@ -1,3 +1,4 @@
-*
-!libhunter/
-libhunter/migrations/
+*.pyc
+libhunter/migrations
+mysite
+libs
