@@ -1,4 +1,5 @@
 *.pyc
 libhunter/migrations
-mysite
-libs
+mysite/
+libs/
+.idea/
