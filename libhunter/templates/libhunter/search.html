@@ -3,15 +3,8 @@
       <form action="{% url 'result' %}" method="post" class="form-signin">
         <h2 class="form-signin-heading">Library hunting</h2>
         {% csrf_token %}
-        <input type="text" id="function" name="function" class="form-control" placeholder="Function name ('return' for main's ret)" required autofocus>
-        <input type="text" id="address" name="address" class="form-control" placeholder="Leaked address (hex)" required>
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Fire!</button>
-        <div class="checkbox">
-            <input type="radio" name="bits" value="32" checked> 32 bit <br>
-            <input type="radio" name="bits" value="64"> 64 bit <br>
-        </div>
-         <!-- TODO: <option> form to select LibraryType -->
-        <input type="text" id="library_type" name="library_type" value="libc" class="form-control" placeholder="Library type" required>
+        {{ form }}
+        <button class="btn btn-lg btn-primary btn-block" style="margin: 10px 0;" type="submit">Fire!</button>
       </form>
 
 </div>

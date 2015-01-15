@@ -11,14 +11,14 @@ from libhunter.hunter import *
 from hashlib import md5
 from os.path import basename
 from django.core.exceptions import ObjectDoesNotExist
-from libhunter.forms import UploadForm
+from libhunter.forms import UploadForm, SearchForm
 from datetime import datetime
 
 # Create your views here.
 
 
 def index(request):
-    return render(request, 'libhunter/index.html', {'content': 'libhunter/search.html'})
+    return render(request, 'libhunter/index.html', {'content': 'libhunter/search.html', 'form': SearchForm})
 
 
 def add(request):
@@ -52,7 +52,7 @@ def add_lib(request):
     if request.method == 'POST':
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
-            file = request.FILES['file']
+            file = form.cleaned_data.get('file')
             try:
                 hunt = Hunter(file)
             except WrongFile:
@@ -64,7 +64,7 @@ def add_lib(request):
                 md.update(chunk)
 
             hashsum = md.hexdigest()
-            library_type = request.POST['library_type']
+            library_type = form.library_type
             try:
                 lib_type = LibraryType.objects.get(name__iexact=library_type)
             except ObjectDoesNotExist:
@@ -102,10 +102,8 @@ def add_lib(request):
 
             return redirect(reverse('show', args=[library.id]))
         else:
-            print "NOT VALID"
             return redirect(reverse('add'))
     else:
-        print "NOT POST"
         return redirect(reverse('add'))
 
 
