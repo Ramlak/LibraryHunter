@@ -52,7 +52,7 @@ def add_lib(request):
     if request.method == 'POST':
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
-            file = form.cleaned_data.get('file')
+            file = form.cleaned_data['file']
             try:
                 hunt = Hunter(file)
             except WrongFile:
@@ -64,7 +64,7 @@ def add_lib(request):
                 md.update(chunk)
 
             hashsum = md.hexdigest()
-            library_type = form.library_type
+            library_type = form.cleaned_data['library_type']
             try:
                 lib_type = LibraryType.objects.get(name__iexact=library_type)
             except ObjectDoesNotExist:
@@ -114,49 +114,53 @@ def show(request, id):
 
 
 def result(request):
-    try:
-        function = request.POST['function']
-        address = request.POST['address']
-        bits = request.POST['bits']
-        library_type = request.POST['library_type']
-    except KeyError:
-        return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Some parameters were not set'})
+    if request.method == 'POST':
+        form = SearchForm(request.POST)
+        if form.is_valid():
 
-    allowed_bits = ['32', '64']
+            function = form.cleaned_data['function']
+            address = form.cleaned_data['address']
+            bits = form.cleaned_data['bits']
+            library_type = form.cleaned_data['library_type']
 
-    if bits not in allowed_bits:
-        return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Invalid bit value'})
+            allowed_bits = ['32', '64']
 
-    bits = int(bits)
+            if bits not in allowed_bits:
+                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Invalid bit value'})
 
-    entropy = 0xfff
+            bits = int(bits)
+            entropy = 0xfff
 
-    try:
-        address = int(address, 16)
-    except ValueError:
-        return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Address is not a valid hex number'})
-
-    try:
-        libraries = LibraryType.objects.get(name__iexact=library_type).library_set.filter(bits=32)
-    except ObjectDoesNotExist:
-        return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'No such library type/no libraries'})
-
-    correct_libs = []
-
-    for lib in libraries:
-        try:
-            if (lib.address_set.get(function__name__iexact=function).value & entropy) == (address & entropy):
-                correct_libs.append([lib, lib.address_set.get(function__name__iexact=function).value])
-        except ObjectDoesNotExist:
-            hunt = Hunter(open(lib.file.name, "rb"))
             try:
-                found = hunt.find_function_address_by_name(function)
-                if (found & entropy) == (address & entropy):
-                    correct_libs.append([lib, found])
-            except FunctionNotFound:
-                pass
+                address = int(address, 16)
+            except ValueError:
+                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Address is not a valid hex number'})
 
-    if len(correct_libs) == 0:
-        return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'No matching libraries'})
+            try:
+                libraries = LibraryType.objects.get(name__iexact=library_type).library_set.filter(bits=bits)
+            except ObjectDoesNotExist:
+                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'No such library type/no libraries'})
 
-    return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'resolved': correct_libs, 'name': function.lower()})
+            correct_libs = []
+
+            for lib in libraries:
+                try:
+                    if (lib.address_set.get(function__name__iexact=function).value & entropy) == (address & entropy):
+                        correct_libs.append([lib, lib.address_set.get(function__name__iexact=function).value])
+                except ObjectDoesNotExist:
+                    hunt = Hunter(open(lib.file.name, "rb"))
+                    try:
+                        found = hunt.find_function_address_by_name(function)
+                        if (found & entropy) == (address & entropy):
+                            correct_libs.append([lib, found])
+                    except FunctionNotFound:
+                        pass
+
+            if len(correct_libs) == 0:
+                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'No matching libraries'})
+
+            return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'resolved': correct_libs, 'name': function.lower()})
+        else:
+            return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Fields corrupted.'})
+    else:
+        return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Must be POST method!'})
