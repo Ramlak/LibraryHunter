@@ -12,4 +12,5 @@ urlpatterns = patterns('',
     url(r'^libs/show/(?P<id>\d+)/$', views.show, name='show'),
     url(r'^libs/all/$', views.download_all, name='download_all'),
     url(r'^libs/(?P<id>\d+)/$', views.download, name='download'),
+    url(r'^info/$', views.info, name='info'),
     )

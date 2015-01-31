@@ -1,0 +1,9 @@
+<div class="container" style="width: 90%;" >
+
+    {% if messages %}
+    {% for message in messages %}
+    <h2 {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }} </h2><br/>
+    {% endfor %}
+    {% endif %}
+
+</div>

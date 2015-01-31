@@ -1,18 +1,19 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect
-from django.core.servers.basehttp import FileWrapper
-from libhunter.models import Library, LibraryType, Address
-from django.db import IntegrityError
 from shutil import make_archive
-from django.core.urlresolvers import reverse
-from zipfile import ZipFile, ZIP_DEFLATED
+from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
 from tempfile import NamedTemporaryFile
-from libhunter.hunter import *
-from hashlib import md5
+from functions import  add_library_from_file, LibraryProblem
 from os.path import basename
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponse
+from django.core.servers.basehttp import FileWrapper
+from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib import messages
+
+from libhunter.models import Library, LibraryType
+from libhunter.hunter import *
 from libhunter.forms import UploadForm, SearchForm
-from datetime import datetime
+
 
 # Create your views here.
 
@@ -22,7 +23,8 @@ def index(request):
 
 
 def add(request):
-    return render(request, 'libhunter/index.html', {'content': 'libhunter/add.html', 'form': UploadForm})
+    return render(request, 'libhunter/index.html', {'content': 'libhunter/add.html', 'form': UploadForm, 'note':
+    'Now supports zip upload!'})
 
 
 def list(request):
@@ -43,64 +45,42 @@ def download(request, id):
 
 def download_all(request):
     tmp = NamedTemporaryFile()
-    response = HttpResponse(FileWrapper(open(make_archive(tmp.name, 'zip', root_dir='libs'), "rb")), content_type='application/x-zip-compressed')
+    response = HttpResponse(FileWrapper(open(make_archive(tmp.name, 'zip', root_dir='libs'), "rb")),
+                            content_type='application/x-zip-compressed')
     response['Content-Disposition'] = "attachment; filename=libraries.zip"
     return response
+
+
+def info(request):
+    return render(request, 'libhunter/index.html', {'content': 'libhunter/info.html'})
 
 
 def add_lib(request):
     if request.method == 'POST':
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
+
             file = form.cleaned_data['file']
-            try:
-                hunt = Hunter(file)
-            except WrongFile:
-                return redirect(reverse('add'))
-
-            md = md5()
-
-            for chunk in file.chunks(chunk_size=128):
-                md.update(chunk)
-
-            hashsum = md.hexdigest()
             library_type = form.cleaned_data['library_type']
-            try:
-                lib_type = LibraryType.objects.get(name__iexact=library_type)
-            except ObjectDoesNotExist:
-                return redirect(reverse('add'))
 
-            try:
-                Library.objects.get(hashsum=hashsum)
-                return redirect(reverse('add'))
-            except ObjectDoesNotExist:
-                pass
-
-
-            new_lib_parameters = {}
-            new_lib_parameters['bits'] = hunt.get_bits_mode()
-            new_lib_parameters['hashsum'] = hashsum
-            new_lib_parameters['description'] = hunt.get_description()
-            new_lib_parameters['file'] = file
-            new_lib_parameters['add_date'] = datetime.now()
-            new_lib_parameters['type'] = lib_type
-
-            library = Library(**new_lib_parameters)
-            library.save()
-
-            for function in lib_type.function_set.all():
-                if function.name.lower() != 'return':
+            if not is_zipfile(file):
+                try:
+                    added_id = add_library_from_file(file, library_type)
+                    return redirect(reverse('show', args=[added_id]))
+                except LibraryProblem as exception:
+                    messages.add_message(request, messages.ERROR, exception.message)
+                    return redirect(reverse('info'))
+            else:
+                zip = ZipFile(file, 'r')
+                successful = 0
+                for name in zip.namelist():
                     try:
-                         Address(value=hunt.find_function_address_by_name(function.name.lower()), library=library, function=function).save()
-                    except FunctionNotFound:
-                        pass  # TODO: what if there is no function in library of library_type and there should be?
-                else:
-                    try:
-                        Address(value=hunt.find_main_return_address(), library=library, function=function).save()
-                    except FunctionNotFound:
-                        pass  # TODO: what if return address cannot be specified?
-
-            return redirect(reverse('show', args=[library.id]))
+                        added_id = add_library_from_file(zip.open(name, 'rb'), library_type)
+                        successful += 1
+                    except LibraryProblem as exception:
+                        pass
+                messages.add_message(request, messages.ERROR, '{}/{} libraries uploaded correctly'.format(successful, len(zip.namelist())))
+                return redirect(reverse('info'))
         else:
             return redirect(reverse('add'))
     else:
@@ -110,7 +90,8 @@ def add_lib(request):
 def show(request, id):
     library = get_object_or_404(Library, pk=id)
     addresses = library.address_set.filter(function__in=library.type.function_set.all())
-    return render(request, 'libhunter/index.html', {'content': 'libhunter/show.html', 'lib': library, 'addresses': addresses})
+    return render(request, 'libhunter/index.html',
+                  {'content': 'libhunter/show.html', 'lib': library, 'addresses': addresses})
 
 
 def result(request):
@@ -126,7 +107,8 @@ def result(request):
             allowed_bits = ['32', '64']
 
             if bits not in allowed_bits:
-                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Invalid bit value'})
+                messages.add_message(request, messages.ERROR, 'Invalid bit value')
+                return redirect(reverse('info'))
 
             bits = int(bits)
             entropy = 0xfff
@@ -134,12 +116,14 @@ def result(request):
             try:
                 address = int(address, 16)
             except ValueError:
-                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Address is not a valid hex number'})
+                messages.add_message(request, messages.ERROR, 'Address is not a valid hex number')
+                return redirect(reverse('info'))
 
             try:
                 libraries = LibraryType.objects.get(name__iexact=library_type).library_set.filter(bits=bits)
             except ObjectDoesNotExist:
-                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'No such library type/no libraries'})
+                messages.add_message(request, messages.ERROR, 'No such library type/no libraries')
+                return redirect(reverse('info'))
 
             correct_libs = []
 
@@ -157,10 +141,14 @@ def result(request):
                         pass
 
             if len(correct_libs) == 0:
-                return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'No matching libraries'})
+                messages.add_message(request, messages.ERROR, 'No matching libraries')
+                return redirect(reverse('info'))
 
-            return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'resolved': correct_libs, 'name': function.lower()})
+            return render(request, 'libhunter/index.html',
+                          {'content': 'libhunter/result.html', 'resolved': correct_libs, 'name': function.lower()})
         else:
-            return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Fields corrupted.'})
+            messages.add_message(request, messages.ERROR, 'Form fields are corrupted.')
+            return redirect(reverse('info'))
     else:
-        return render(request, 'libhunter/index.html', {'content': 'libhunter/result.html', 'error_message': 'Must be POST method!'})
+        messages.add_message(render, messages.ERROR, 'Must be POST method!')
+        return redirect(reverse('info'))
