@@ -1,15 +1,15 @@
-from shutil import make_archive
+from shutil import make_archive, copyfileobj
 from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
 from tempfile import NamedTemporaryFile
-from functions import  add_library_from_file, LibraryProblem
+from functions import add_library_from_file, LibraryProblem
 from os.path import basename
+from django.core.files import File
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.core.servers.basehttp import FileWrapper
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
-
 from libhunter.models import Library, LibraryType
 from libhunter.hunter import *
 from libhunter.forms import UploadForm, SearchForm
@@ -75,7 +75,11 @@ def add_lib(request):
                 successful = 0
                 for name in zip.namelist():
                     try:
-                        added_id = add_library_from_file(zip.open(name, 'rb'), library_type)
+                        tmp_file = NamedTemporaryFile("w+b")
+                        source = zip.open(name)
+                        copyfileobj(source, tmp_file)
+                        tmp_file.seek(0)
+                        added_id = add_library_from_file(File(tmp_file), library_type)
                         successful += 1
                     except LibraryProblem as exception:
                         pass

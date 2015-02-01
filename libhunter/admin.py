@@ -44,4 +44,4 @@ admin.site.register(Function, FunctionAdmin)
 admin.site.register(Address)
 
 #  TODO: customize admin panel
-#  TODO: add file deletion when deleting library in admin panel
+#  TODO: add fetching functions from library to generate function names

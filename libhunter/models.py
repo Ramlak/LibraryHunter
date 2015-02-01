@@ -1,5 +1,8 @@
 from django.db import models
 from os import path
+from django.dispatch import receiver
+from shutil import move
+from datetime import datetime
 
 # Create your models here.
 
@@ -45,3 +48,11 @@ class Address(models.Model):
 
     def __str__(self):
         return str(self.function) + "_" + str(self.library.id).lower()
+
+
+@receiver(models.signals.post_delete, sender=Library)
+def auto_move_library_file_to_trash(sender, instance, **kwargs):
+    if instance.file:
+        if path.isfile(instance.file.path):
+            now = datetime.now()
+            move(instance.file.path, 'trash/{}_{}-{}-{}_{}-{}'.format(path.basename(instance.file.path), now.year, now.month, now.day, now.hour, now.minute))
