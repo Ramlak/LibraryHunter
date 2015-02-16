@@ -9,8 +9,8 @@ from capstone import *
 def cut(buff, start, end):
     p = buff.find(start)
     q = buff.find(end, p + len(start))
-    assert p != -1
-    assert q != -1
+    if p == -1 or q == -1:
+        return "Description not found"
     return buff[p:q]
 
 
@@ -79,8 +79,15 @@ class Hunter(object):
             ct += 1
         raise FunctionNotFound("Return address could not be specified")
 
+    def get_all_non_null_symbols(self):
+        result = []
+        for sym in self.dynsym.iter_symbols():
+            if sym.entry.st_value != 0 and sym.name != "":
+                result.append([sym.name, sym.entry.st_value])
+        return result
+
     def get_description(self):
-        return self.description
+        return str(self.description)
 
     def get_bits_mode(self):
         return str(self.mode)

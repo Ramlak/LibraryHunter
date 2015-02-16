@@ -1,4 +1,4 @@
-__author__ = 'kalmar'
+__author__ = 'Kalmar'
 
 from django.conf.urls import patterns, url
 from libhunter import views
@@ -13,4 +13,7 @@ urlpatterns = patterns('',
     url(r'^libs/all/$', views.download_all, name='download_all'),
     url(r'^libs/(?P<id>\d+)/$', views.download, name='download'),
     url(r'^info/$', views.info, name='info'),
+    url(r'^update/$', views.update, name='update'),
+    url(r'^update/status/$', views.update_status, name='update_status'),
+    url(r'^functions/update/$', views.update_functions, name='update_functions')
     )

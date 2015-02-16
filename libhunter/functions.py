@@ -1,9 +1,13 @@
 __author__ = 'Kalmar'
 from hashlib import md5
+from tempfile import TemporaryFile
 from datetime import datetime
-from hunter import Hunter, WrongFile, FunctionNotFound
+from django.core.files import File
+from hunter import Hunter
 from django.core.exceptions import ObjectDoesNotExist
-from libhunter.models import LibraryType, Library, Address
+from libhunter.models import Library, Address, Function
+from django.contrib.sessions.models import SessionStore
+from zipfile import ZipFile
 
 
 class LibraryProblem(Exception):
@@ -21,13 +25,12 @@ def chunks(file_object, chunk_size=1024):
         yield data
 
 
-def add_library_from_file(library_file, library_type):
+def add_library_from_file(library_file, lib_type):
     library_file.seek(0)
-
     try:
         hunt = Hunter(library_file)
-    except WrongFile:
-        raise LibraryProblem("File not correct")
+    except Exception as exception:
+        raise LibraryProblem("File is corrupted")
 
     md = md5()
     library_file.seek(0)
@@ -35,10 +38,6 @@ def add_library_from_file(library_file, library_type):
         md.update(chunk)
 
     hashsum = md.hexdigest()
-    try:
-        lib_type = LibraryType.objects.get(name__iexact=library_type)
-    except ObjectDoesNotExist:
-        raise LibraryProblem("No such library type")
 
     try:
         Library.objects.get(hashsum=hashsum)
@@ -60,23 +59,87 @@ def add_library_from_file(library_file, library_type):
     library.save()
 
     successful = 0
+    functions_in_database = {func.name: func for func in lib_type.function_set.all()}
 
-    for function in lib_type.function_set.all():     #  TODO: more flexible solution to missing elements in library
-        if function.name.lower() != 'return':
-            try:
-                Address(value=hunt.find_function_address_by_name(function.name.lower()), library=library, function=function).save()
-                successful += 1
-            except FunctionNotFound:
-                pass
-        else:
-            try:
-                Address(value=hunt.find_main_return_address(), library=library, function=function).save()
-                successful += 1
-            except FunctionNotFound:
-                pass
+    function_names_and_addresses = hunt.get_all_non_null_symbols()
+    function_names_and_addresses.append(["return", hunt.find_main_return_address()])
 
-        if successful * 1.0 / len(lib_type.function_set.all()) < 0.2:
-            library.delete()
-            raise LibraryProblem('Too few functions present in library')
+    for function, address in function_names_and_addresses:     #  TODO: more flexible solution to missing elements in library
+        if function in functions_in_database.keys():
+                Address(value=address, library=library, function=functions_in_database[function]).save()
+                successful += 1
+
+    if (successful * 1.0 / len(functions_in_database)) < 0.01:
+        library.delete()
+        raise LibraryProblem('Too few functions present in library')
 
     return library.id
+
+
+def add_libraries_from_zip(session_key, zip_bytes, lib_type):
+    session = SessionStore(session_key=session_key)
+    session['UpdateInfo'] = {"progress": 0, "text": "Starting..."}
+    session['Updating'] = True
+
+    tmp_zip = TemporaryFile()
+    tmp_zip.write(zip_bytes)
+    tmp_zip.seek(0)
+
+    zip_file = ZipFile(tmp_zip)
+    namelist = zip_file.namelist()
+
+    done = 0
+    errors = 0
+    length = len(namelist)
+
+    for name in namelist:
+        try:
+            tmp_file = TemporaryFile()
+            tmp_file.write(zip_file.open(name).read())
+            add_library_from_file(File(tmp_file), lib_type)
+        except LibraryProblem:
+            errors += 1
+            pass
+        finally:
+            done += 1
+            session['UpdateInfo'] = {"progress": int(100.0 * done / length), "text": "{}/{} processed ({} errors)".format(done, length, errors)}
+            session.save()
+
+    session['UpdateInfo'] = {"progress": 100, "text": "Finished {}/{} where added.".format(length-errors, length)}
+    session['Updating'] = False
+    session.save()
+    return
+
+
+def add_functions_from_file(session_key, library_bytes, lib_type):
+    session = SessionStore(session_key=session_key)
+    session['UpdateInfo'] = {"progress": 0, "text": "Starting..."}
+    session['Updating'] = True
+    session.save()
+    library_file = TemporaryFile()
+    library_file.write(library_bytes)
+    library_file.seek(0)
+
+    try:
+        hunt = Hunter(library_file)
+    except Exception as exception:
+        session['UpdateInfo'] = "File corrupted"
+        session.save()
+        return
+
+    symbols = hunt.get_all_non_null_symbols()
+    symbols.append(["return", hunt.find_main_return_address()])
+    successful = 0
+    function_names = []
+    for function in Function.objects.filter(library=lib_type):
+        function_names.append(function.name)
+    for name, address in symbols:
+        if name not in function_names:
+            if Function(name=name, library=lib_type).save() != -1:
+                successful += 1
+                session['UpdateInfo'] = {"progress": int(100.0*successful/len(symbols)), "text": "{}/{} symbols retrieved".format(successful, len(symbols))}
+                session.save()
+    session['UpdateInfo'] = {"progress": 100, "text": "Finished"}
+    session['Updating'] = False
+    session.save()
+    return

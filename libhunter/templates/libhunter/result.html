@@ -1,18 +1,21 @@
-<div class="container" style="width: 90%;">
-    <h2>Possible libraries</h2>
-    <div class="table-responsive">
-      <table class="table">
+{% extends "libhunter/base.html" %}
+
+
+{% block content %}
+<h2>Possible libraries</h2>
+<div class="table-responsive">
+    <table class="table">
         <thead>
-          <tr>
-            <th>#</th>
-            <th>Description</th>
-            <th>Bits</th>
-            <th>&lt;{{ name }}&gt;</th>
-            <th>Download</th>
-            <th>Details</th>
-          </tr>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th>Bits</th>
+                <th>&lt;{{ name }}&gt;</th>
+                <th>Download</th>
+                <th>Details</th>
+            </tr>
         </thead>
-          <tbody>
+        <tbody>
             {% for lib, system in resolved %}
             <tr>
                 <td>{{ forloop.counter }}</td>
@@ -25,6 +28,5 @@
             {% endfor %}
           </tbody>
       </table>
-      </div>
-
 </div>
+{% endblock %}

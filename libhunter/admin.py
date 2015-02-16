@@ -6,42 +6,25 @@ from libhunter.models import LibraryType, Library, Function, Address
 # Register your models here.
 
 
-class FunctionAdmin(admin.ModelAdmin):
-    def save_model(self, request, obj, form, change):
-        libraries = Library.objects.filter(type=obj.library)
-        try:
-            obj.library.function_set.get(name__iexact=obj.name)
-            return
-        except ObjectDoesNotExist:
-            pass
+class FunctionInline(admin.TabularInline):
+    model = Function
+    fieldsets = [
+        (None, {'fields': ['name']})
+    ]
+    extra = 2
 
-        obj.save()
-        found = 0
 
-        for lib in libraries:
-            hunt = Hunter(lib.file)
-            if obj.name.lower() == "return":
-                try:
-                    return_address = hunt.find_main_return_address()
-                    Address(library=lib, function=obj, value=return_address).save()
-                    found += 1
-                except FunctionNotFound:
-                    pass
-            else:
-                try:
-                    function_address = hunt.find_function_address_by_name(obj.name)
-                    Address(library=lib, function=obj, value=function_address).save()
-                    found += 1
-                except FunctionNotFound:
-                    pass
+class LibraryInline(admin.StackedInline):
+    model = Library
+    extra = 0
+    fieldsets = [
+        (None, {'fields': []}),
+    ]
 
-        if found == 0:
-            obj.delete()
 
-admin.site.register(LibraryType)
-admin.site.register(Library)
-admin.site.register(Function, FunctionAdmin)
-admin.site.register(Address)
+class LibraryTypeAdmin(admin.ModelAdmin):
+    inlines = [LibraryInline, FunctionInline]
 
-#  TODO: customize admin panel
-#  TODO: add fetching functions from library to generate function names
+admin.site.register(LibraryType, LibraryTypeAdmin)
+
+#  TODO: add some documentation (GLOBAL)

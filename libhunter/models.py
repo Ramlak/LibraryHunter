@@ -3,6 +3,8 @@ from os import path
 from django.dispatch import receiver
 from shutil import move
 from datetime import datetime
+from hunter import Hunter, FunctionNotFound
+from django.core.exceptions import ObjectDoesNotExist
 
 # Create your models here.
 
@@ -26,6 +28,9 @@ class Library(models.Model):
     hashsum = models.CharField(max_length=32, unique=True)
     type = models.ForeignKey(LibraryType)
 
+    class Meta:
+        verbose_name_plural = 'Libraries'
+
     def name(self):
         return path.basename(str(self.file))
 
@@ -36,6 +41,41 @@ class Library(models.Model):
 class Function(models.Model):
     name = models.CharField(max_length=50)
     library = models.ForeignKey(LibraryType, verbose_name="Library type")
+
+    def save(self, *args):
+        libraries = Library.objects.filter(type=self.library)
+        if len(libraries) == 0:
+            super(Function, self).save()
+            return
+        try:
+            self.library.function_set.get(name__iexact=self.name)
+            return -1
+        except ObjectDoesNotExist:
+            pass
+
+        super(Function, self).save()
+        found = 0
+
+        for lib in libraries:
+            hunt = Hunter(lib.file)
+            if self.name.lower() == "return":
+                try:
+                    return_address = hunt.find_main_return_address()
+                    Address(library=lib, function=self, value=return_address).save()
+                    found += 1
+                except FunctionNotFound:
+                    pass
+            else:
+                try:
+                    function_address = hunt.find_function_address_by_name(self.name)
+                    Address(library=lib, function=self, value=function_address).save()
+                    found += 1
+                except FunctionNotFound:
+                    pass
+
+        if found == 0:
+            self.delete()
+            return -1
 
     def __str__(self):
         return str(self.name)

@@ -1,4 +1,5 @@
-    <div class="container" style="width: 90%;margin: auto auto;margin-top: 30px;">
+{% extends 'libhunter/base.html' %}
+{% block content %}
       <h2>Libraries</h2>
       <p>List of libraries in database</p>
       <div class="table-responsive">
@@ -26,4 +27,4 @@
       </table>
           <h3 style="text-align: center;"><a style="text-decoration: none;" href="{% url 'download_all' %}" download="{% url 'download_all' %}"> I want them all! </a></h3>
       </div>
-    </div>
+{% endblock %}
