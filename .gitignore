@@ -1,0 +1,3 @@
+*.pyc
+libhunter/migrations
+libhunter/libs

@@ -1,7 +1,7 @@
 from django.db import models
 from os import path
 from django.dispatch import receiver
-from shutil import move
+from shutil import move, rmtree
 from datetime import datetime
 from hunter import Hunter, FunctionNotFound
 from django.core.exceptions import ObjectDoesNotExist
@@ -96,4 +96,4 @@ def auto_move_library_file_to_trash(sender, instance, **kwargs):
     if instance.file:
         if path.isfile(instance.file.path):
             now = datetime.now()
-            move(instance.file.path, 'trash/{}_{}-{}-{}_{}-{}'.format(path.basename(instance.file.path), now.year, now.month, now.day, now.hour, now.minute))
+            rmtree(instance.file.path)
