@@ -5,12 +5,13 @@ from shutil import move
 from datetime import datetime
 from hunter import Hunter, FunctionNotFound
 from django.core.exceptions import ObjectDoesNotExist
+from settings import LIBS_DIR
 
 # Create your models here.
 
 
 def upload_filename(instance, filename):
-    return path.join('libs/', instance.type.name.lower() + "_" + instance.hashsum)
+    return path.join(LIBS_DIR, instance.type.name.lower() + "_" + instance.hashsum)
 
 
 class LibraryType(models.Model):
