@@ -1,4 +1,5 @@
 import json
+import urllib2
 from shutil import make_archive, copyfileobj
 from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
 from tempfile import NamedTemporaryFile
