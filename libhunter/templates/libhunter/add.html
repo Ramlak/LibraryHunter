@@ -1,0 +1,10 @@
+{% extends 'libhunter/base.html' %}
+{% block content %}
+    <form action="{% url 'add_lib' %}" method="post" class="form-signin" enctype="multipart/form-data">
+        <h2 class="form-signin-heading">Add library</h2>
+        {% csrf_token %}
+        {{ form }}
+        <button class="btn btn-lg btn-primary btn-block" style="margin: 10px 0;" type="submit">Add</button>
+        {% if note %}<p style="text-align: center;">Note: {{ note }}</p>{% endif %}
+    </form>
+{% endblock %}

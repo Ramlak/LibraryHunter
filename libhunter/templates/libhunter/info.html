@@ -1,0 +1,36 @@
+{% extends 'libhunter/base.html' %}
+{% block content %}
+    {% if messages %}
+    {% for message in messages %}
+    <h2 {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }} </h2><br/>
+    {% endfor %}
+    {% endif %}
+    {% if request.session.Updating == True %}
+    <script type="text/javascript">
+        if (typeof String.prototype.startsWith != 'function') {
+  // see below for better implementation!
+        String.prototype.startsWith = function (str){
+        return this.indexOf(str) == 0;
+        };
+    }
+
+        finished = false;
+        var update_bar = function() {
+            if (finished != true) {
+            $.get("{% url 'update_status' %}", function(data) {
+                var parsed = JSON.parse(data);
+                if (parsed["text"].startsWith("Finished")) {
+                    finished = true;}
+                $("#bar").text(parsed["text"]);
+                $("#bar").css('width', parsed["progress"]+'%').attr('aria-valuenow', parsed["progress"]);
+            }); }
+        };
+        setInterval(update_bar, 500);
+    </script>
+    <div class="progress">
+        <div id="bar" class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">
+
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}

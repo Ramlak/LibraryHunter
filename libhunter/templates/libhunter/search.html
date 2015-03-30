@@ -1,0 +1,10 @@
+{% extends 'libhunter/base.html' %}
+{% block content %}
+      <form action="{% url 'result' %}" method="post" class="form-signin">
+        <h2 class="form-signin-heading">Library hunting</h2>
+        {% csrf_token %}
+        {{ form }}
+        <button class="btn btn-lg btn-primary btn-block" style="margin: 10px 0;" type="submit">Fire!</button>
+      </form>
+
+{% endblock %}

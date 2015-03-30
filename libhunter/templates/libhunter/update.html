@@ -1,0 +1,13 @@
+{% extends 'libhunter/base.html' %}
+{% block content %}
+    {% if error_message %}
+    <h2>{{error_message}}</h2>
+    {% endif %}
+    <form action="{% url 'update_functions' %}" method="post" class="form-signin" enctype="multipart/form-data">
+        <h2 class="form-signin-heading">Add functions from Library</h2>
+        {% csrf_token %}
+        {{ form }}
+        <button class="btn btn-lg btn-primary btn-block" style="margin: 10px 0;" type="submit">Add</button>
+        {% if note %}<p style="text-align: center;">Note: {{ note }}</p>{% endif %}
+    </form>
+{% endblock %}
