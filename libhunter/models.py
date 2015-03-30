@@ -95,5 +95,4 @@ class Address(models.Model):
 def auto_move_library_file_to_trash(sender, instance, **kwargs):
     if instance.file:
         if path.isfile(instance.file.path):
-            print "A"
             remove(instance.file.path)
