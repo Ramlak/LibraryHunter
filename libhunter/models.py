@@ -5,7 +5,7 @@ from shutil import move
 from datetime import datetime
 from hunter import Hunter, FunctionNotFound
 from django.core.exceptions import ObjectDoesNotExist
-from settings import LIBS_DIR
+from website.settings import LIBS_DIR
 
 # Create your models here.
 
