@@ -66,7 +66,7 @@ def add_lib(request):
                 file = form.cleaned_data['file']
             elif form.cleaned_data['url']:
                 url = form.cleaned_data['url']
-                file = NamedTemporaryFile("rw")
+                file = NamedTemporaryFile()
                 file.write(urllib2.urlopen(url).read())
                 file.seek(0)
             else:
