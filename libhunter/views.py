@@ -7,6 +7,7 @@ from functions import add_library_from_file, LibraryProblem, add_functions_from_
 from os.path import basename
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
+from django.core.files import File
 from django.core.servers.basehttp import FileWrapper
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
@@ -68,7 +69,7 @@ def add_lib(request):
                 url = form.cleaned_data['url']
                 file = NamedTemporaryFile()
                 file.write(urllib2.urlopen(url).read())
-                file = FileWrapper(file)
+                file = File(file)
                 file.seek(0)
             else:
                 messages.add_message(request, messages.ERROR, "You must provide file or url!")
