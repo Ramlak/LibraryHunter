@@ -6,7 +6,7 @@ from libhunter.models import LibraryType
 
 class UploadForm(forms.Form):
     file = forms.FileField(label="", widget=forms.FileInput(attrs={'class': 'form-control'}), required=False)
-    url = forms.URLField(label="", widget=forms.TextInput(attrs={'class': 'form-control'}), required=False)
+    url = forms.URLField(label="OR", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'URL to file'}), required=False)
     library_type = forms.ChoiceField(label="", widget=forms.Select(attrs={'class': 'form-control'}), choices=[(lib.id, lib.name) for lib in LibraryType.objects.all()], required=True)
 
 
