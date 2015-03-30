@@ -68,6 +68,7 @@ def add_lib(request):
                 url = form.cleaned_data['url']
                 file = NamedTemporaryFile()
                 file.write(urllib2.urlopen(url).read())
+                file = FileWrapper(file)
                 file.seek(0)
             else:
                 messages.add_message(request, messages.ERROR, "You must provide file or url!")
