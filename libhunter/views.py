@@ -62,10 +62,10 @@ def add_lib(request):
         request.session['Updating'] = False
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
-
             if form.cleaned_data['file']:
                 file = form.cleaned_data['file']
             elif form.cleaned_data['url']:
+                url = form.cleaned_data['url']
                 file = NamedTemporaryFile("rw")
                 file.write(urllib2.urlopen(url).read())
                 file.seek(0)
