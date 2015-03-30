@@ -26,5 +26,6 @@ class LibraryTypeAdmin(admin.ModelAdmin):
     inlines = [LibraryInline, FunctionInline]
 
 admin.site.register(LibraryType, LibraryTypeAdmin)
+admin.site.register(Library)
 
 #  TODO: add some documentation (GLOBAL)

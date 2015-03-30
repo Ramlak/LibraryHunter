@@ -62,7 +62,16 @@ def add_lib(request):
         form = UploadForm(request.POST, request.FILES)
         if form.is_valid():
 
-            file = form.cleaned_data['file']
+            if form.cleaned_data['file']:
+                file = form.cleaned_data['file']
+            elif form.cleabed_data['url']:
+                file = NamedTemporaryFile("rw")
+                file.write(urllib2.urlopen(url).read())
+                file.seek(0)
+            else:
+                messages.add_message(request, messages.ERROR, "You must provide file or url!")
+                return redirect(reverse('info'))
+
             library_type_id = form.cleaned_data['library_type']
             try:
                 library_id = LibraryType.objects.get(id=library_type_id)
@@ -80,7 +89,6 @@ def add_lib(request):
             else:
                 file.seek(0)
                 zip_bytes = file.read()
-                print len(zip_bytes)
                 Thread(target=add_libraries_from_zip, args=(request.session.session_key, zip_bytes, library_id)).start()
                 request.session['Updating'] = True
                 return redirect(reverse('info'))
